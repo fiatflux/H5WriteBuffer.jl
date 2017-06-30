@@ -60,11 +60,9 @@ mktempdir() do d
         h5open(fname) do f
             @test d_open(f, "A")[:,:,:] == ones(3,4,19)
         end
-        close(wb)
-    end
-end
 
-mktempdir() do d
-    cd(d) do
+        # Test dset function, returning a handle to the underlying data.
+        @test read(dset(wb)) == ones(3,4,19)
+        close(wb)
     end
 end

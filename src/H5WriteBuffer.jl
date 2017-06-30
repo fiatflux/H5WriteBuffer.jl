@@ -6,8 +6,8 @@ import Base.push!,
 
 export FileBackedBuffer,
        push!,
+       dset,
        flush,
-       with,
        close
 
 ### This type is designed to streamline appending, in the
@@ -62,6 +62,12 @@ function push!{T}(this::FileBackedBuffer{T}, x)
     if this.bsize == this.bcapacity
         flush(this)
     end
+end
+
+# Return a reference to the dataset backing this buffer.
+function dset{T}(this::FileBackedBuffer{T})
+    flush(this)
+    return this.A
 end
 
 # Write in-memory buffer to file and clear it.
