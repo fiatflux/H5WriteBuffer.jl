@@ -28,3 +28,24 @@ mktemp() do p,f
 
     @test d_open(f2, "A")[:,:,:] == ones(3,4,10)
 end
+
+# Test constructor taking filename.
+mktempdir() do d
+    cd(d) do
+        fname = "somefile.h5"
+
+        # Test new file.
+        wb = FileBackedBuffer(fname, "A", Float64, (3,4), 5)
+        for i=1:10 push!(wb, ones(3,4)) end
+        h5open(fname) do f
+            @test d_open(f, "A")[:,:,:] == ones(3,4,10)
+        end
+        
+        # Test existing file.
+        wb = FileBackedBuffer("somefile.h5", "A", Float64, (3,4), 5)
+        for i=1:5 push!(wb, ones(3,4)) end
+        h5open(fname) do f
+            @test d_open(f, "A")[:,:,:] == ones(3,4,15)
+        end
+    end
+end

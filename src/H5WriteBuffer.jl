@@ -1,9 +1,12 @@
 module H5WriteBuffer
-import Base.push!
 using HDF5
+import Base.push!,
+       HDF5.flush
 
 export FileBackedBuffer,
-       push!
+       push!,
+       flush,
+       close
 
 ### This type is designed to streamline appending, in the
 ### single most-major dimension, to an array backed by an
@@ -13,14 +16,16 @@ export FileBackedBuffer,
 ### extend that.
 type FileBackedBuffer{T,N}
     handle               # Keep HDF5 file handle.
-    A                    # Reference to array inside
+    take_ownership       # Take ownership of file handle.
+    A                    # Reference to array inside.
     selectall            # A tuple of colons to select inner dims.
     bsize::Int           # Present size of in-memory buffer.
     bcapacity::Int       # Present capacity of in-memory buffer.
     b::Array{T,N}        # Buffer.
 end
 function FileBackedBuffer(hdf5_handle, dset_name::String,
-                          T::Type, inner_size::Tuple, buffer_size::Int)
+                          T::Type, inner_size::Tuple, buffer_size::Int;
+                          take_ownership=false)
     if exists(hdf5_handle, dset_name)
         A = d_open(hdf5_handle, dset_name)
     else
@@ -31,24 +36,37 @@ function FileBackedBuffer(hdf5_handle, dset_name::String,
                      "chunk", (inner_size...,buffer_size))
         set_dims!(A, (inner_size...,0))
     end
-    FileBackedBuffer(hdf5_handle, A,
+    FileBackedBuffer(hdf5_handle, take_ownership, A,
                      (Colon() for i=1:length(size(A))-1),
                      0, buffer_size,
                      Array(T, (inner_size...,buffer_size)))
+end
+function FileBackedBuffer(fname::String, dset_name::String,
+                          T::Type, inner_size::Tuple, buffer_size::Int)
+    handle = h5open(fname, isfile(fname) ? "r+" : "w")
+    FileBackedBuffer(handle, dset_name::String,
+                     T::Type, inner_size::Tuple, buffer_size::Int;
+                     take_ownership=true)
+end
+function close(this::FileBackedBuffer)
+    if this.take_ownership
+        close(this.handle)
+    end
 end
 function push!{T}(this::FileBackedBuffer{T}, x)
     this.bsize += 1
     this.b[this.selectall...,this.bsize] = x
 
     if this.bsize == this.bcapacity
-        _flush!(this)
+        flush(this)
     end
 end
 
 # Write in-memory buffer to file and clear it.
-function _flush!{T}(this::FileBackedBuffer{T})
+function flush{T}(this::FileBackedBuffer{T})
     set_dims!(this.A, (size(this.A)[1:end-1]..., size(this.A)[end]+this.bsize))
     this.A[this.selectall...,end-this.bsize+1:end] = this.b
+    flush(this.handle)
     _clear!(this)
 end
 
