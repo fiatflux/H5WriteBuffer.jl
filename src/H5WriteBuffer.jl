@@ -66,7 +66,7 @@ end
 
 # Return a reference to the dataset backing this buffer.
 function dset{T}(this::FileBackedBuffer{T})
-    flush(this)
+    if this.bsize > 0 flush(this) end
     return this.A
 end
 
