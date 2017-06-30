@@ -40,6 +40,7 @@ mktempdir() do d
         h5open(fname) do f
             @test d_open(f, "A")[:,:,:] == ones(3,4,10)
         end
+        close(wb)
         
         # Test existing file.
         wb = FileBackedBuffer("somefile.h5", "A", Float64, (3,4), 5)
@@ -47,5 +48,23 @@ mktempdir() do d
         h5open(fname) do f
             @test d_open(f, "A")[:,:,:] == ones(3,4,15)
         end
+        close(wb)
+
+        # Test flush.
+        wb = FileBackedBuffer("somefile.h5", "A", Float64, (3,4), 5)
+        for i=1:4 push!(wb, ones(3,4)) end
+        h5open(fname) do f
+            @test d_open(f, "A")[:,:,:] == ones(3,4,15)
+        end
+        flush(wb)
+        h5open(fname) do f
+            @test d_open(f, "A")[:,:,:] == ones(3,4,19)
+        end
+        close(wb)
+    end
+end
+
+mktempdir() do d
+    cd(d) do
     end
 end

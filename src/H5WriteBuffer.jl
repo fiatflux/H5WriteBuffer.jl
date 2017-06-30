@@ -1,11 +1,13 @@
 module H5WriteBuffer
 using HDF5
 import Base.push!,
+       Base.close,
        HDF5.flush
 
 export FileBackedBuffer,
        push!,
        flush,
+       with,
        close
 
 ### This type is designed to streamline appending, in the
@@ -48,7 +50,7 @@ function FileBackedBuffer(fname::String, dset_name::String,
                      T::Type, inner_size::Tuple, buffer_size::Int;
                      take_ownership=true)
 end
-function close(this::FileBackedBuffer)
+function close{T}(this::FileBackedBuffer{T})
     if this.take_ownership
         close(this.handle)
     end
@@ -65,7 +67,7 @@ end
 # Write in-memory buffer to file and clear it.
 function flush{T}(this::FileBackedBuffer{T})
     set_dims!(this.A, (size(this.A)[1:end-1]..., size(this.A)[end]+this.bsize))
-    this.A[this.selectall...,end-this.bsize+1:end] = this.b
+    this.A[this.selectall...,end-this.bsize+1:end] = this.b[this.selectall...,1:this.bsize]
     flush(this.handle)
     _clear!(this)
 end
