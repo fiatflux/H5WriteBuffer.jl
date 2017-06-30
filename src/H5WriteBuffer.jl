@@ -45,7 +45,7 @@ function FileBackedBuffer(hdf5_handle, dset_name::String,
 end
 function FileBackedBuffer(fname::String, dset_name::String,
                           T::Type, inner_size::Tuple, buffer_size::Int)
-    handle = h5open(fname, isfile(fname) ? "r+" : "w")
+    handle = h5open(fname, isfile(fname) && (filesize(fname)>0) ? "r+" : "w")
     FileBackedBuffer(handle, dset_name::String,
                      T::Type, inner_size::Tuple, buffer_size::Int;
                      take_ownership=true)

@@ -43,7 +43,7 @@ mktempdir() do d
         close(wb)
         
         # Test existing file.
-        wb = FileBackedBuffer("somefile.h5", "A", Float64, (3,4), 5)
+        wb = FileBackedBuffer(fname, "A", Float64, (3,4), 5)
         for i=1:5 push!(wb, ones(3,4)) end
         h5open(fname) do f
             @test d_open(f, "A")[:,:,:] == ones(3,4,15)
@@ -51,7 +51,7 @@ mktempdir() do d
         close(wb)
 
         # Test flush.
-        wb = FileBackedBuffer("somefile.h5", "A", Float64, (3,4), 5)
+        wb = FileBackedBuffer(fname, "A", Float64, (3,4), 5)
         for i=1:4 push!(wb, ones(3,4)) end
         h5open(fname) do f
             @test d_open(f, "A")[:,:,:] == ones(3,4,15)
@@ -63,6 +63,16 @@ mktempdir() do d
 
         # Test dset function, returning a handle to the underlying data.
         @test read(dset(wb)) == ones(3,4,19)
+        close(wb)
+
+        # Test existing empty file.
+        rm(fname)
+        touch(fname)
+        wb = FileBackedBuffer(fname, "A", Float64, (3,4), 5)
+        for i=1:5 push!(wb, ones(3,4)) end
+        h5open(fname) do f
+            @test d_open(f, "A")[:,:,:] == ones(3,4,5)
+        end
         close(wb)
     end
 end
