@@ -66,14 +66,16 @@ end
 
 # Return a reference to the dataset backing this buffer.
 function dset{T}(this::FileBackedBuffer{T})
-    if this.bsize > 0 flush(this) end
+    flush(this)
     return this.A
 end
 
 # Write in-memory buffer to file and clear it.
 function flush{T}(this::FileBackedBuffer{T})
-    set_dims!(this.A, (size(this.A)[1:end-1]..., size(this.A)[end]+this.bsize))
-    this.A[this.selectall...,end-this.bsize+1:end] = this.b[this.selectall...,1:this.bsize]
+    if this.bsize > 0
+        set_dims!(this.A, (size(this.A)[1:end-1]..., size(this.A)[end]+this.bsize))
+        this.A[this.selectall...,end-this.bsize+1:end] = this.b[this.selectall...,1:this.bsize]
+    end
     flush(this.handle)
     _clear!(this)
 end
